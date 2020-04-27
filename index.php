@@ -17,60 +17,69 @@ function query($query) {
     }
     return $result;
   }
-  //get tweet
-  function getSingle($query) {
-    global $conn;
-    $result = query($query);
-    $row = mysqli_fetch_row($result);
-    return $row[0];
-  }
-  //get user
-  function getUid(){
-    global $conn;
-    $ip = mysqli_real_escape_string($conn, $_SERVER['REMOTE_ADDR']);
-    $uid = getSingle("select uid from users where ip = '".$ip."'");
-    if (!$uid) {
-      query("insert into users(ip) values ('$ip')");
+//get tweet
+function getSingle($query) {
+global $conn;
+$result = query($query);
+$row = mysqli_fetch_row($result);
+return $row[0];
+}
+//get user
+function getUid(){
+global $conn;
+$ip = mysqli_real_escape_string($conn, $_SERVER['REMOTE_ADDR']);
+$uid = getSingle("select uid from users where ip = '".$ip."'");
+if (!$uid) {
+    query("insert into users(ip) values ('$ip')");
+}
+$uid = getSingle("select uid from users where ip = '".$ip."'");
+return $uid;
+}
+
+function renderTweets($tweets){
+global $user;
+print "<table  bordercolor=#ddd cellpadding=2 border=1>";
+foreach($tweets as $row){
+    $uid = $row['uid'];
+    $post = htmlspecialchars($row['post']);
+    $date = $row['date'];
+    
+    if (!getSingle("select follower from follows where uid=$user and follower=$uid"))
+    $follow = <<<EOF
+    <a href=index.php?follow=$uid>Follow</a>
+EOF;
+    else {
+    $follow = "<a href=index.php?unfollow=$uid>Unfollow</a>";
     }
-    $uid = getSingle("select uid from users where ip = '".$ip."'");
-    return $uid;
-  }
-  
-  function renderTweets($tweets){
-    global $user;
-    print "<table  bordercolor=#ddd cellpadding=2 border=1>";
-    foreach($tweets as $row){
-      $uid = $row['uid'];
-      $post = htmlspecialchars($row['post']);
-      $date = $row['date'];
-      
-      if (!getSingle("select follower from follows where uid=$user and follower=$uid"))
-        $follow = <<<EOF
-      <a href=index.php?follow=$uid>Follow</a>
-  EOF;
-      else {
-        $follow = "<a href=index.php?unfollow=$uid>Unfollow</a>";
-      }
-      print <<<EOF
-        <tr><TD>$uid</td><td width=100%><div style='max-width:500px;overflow:hidden'>$post</div></td><td nowrap>$date</td><td>$follow</td></tr>
-  EOF;
-    }
-    print "</table>";
-  }
-  
-  $user = getUid();
+    print <<<EOF
+    <tr><TD>$uid</td><td width=100%><div style='max-width:500px;overflow:hidden'>$post</div></td><td nowrap>$date</td><td>$follow</td></tr>
+EOF;
+}
+print "</table>";
+}
+
+$user = getUid();
 
 
 
-  //event handlers
-  if($_REQUEST['tweet']) {
-    $tweet = mysqli_real_escape_string($conn, $_REQUEST['tweet']);
-    if(getSingle("select count(*) from tweets where post = '$tweet' and date >= '".Date("Y-m-d H:i:s", time()-60*60)."'")){
-      die("Disallowed.");
+//event handlers
+if($_REQUEST['tweet']) {
+$tweet = mysqli_real_escape_string($conn, $_REQUEST['tweet']);
+if(getSingle("select count(*) from tweets where post = '$tweet' and date >= '".Date("Y-m-d H:i:s", time()-60*60)."'")){
+    die("Disallowed.");
+}
+if(getSingle("select count(*) from tweets where uid=$user and date >= '".Date("Y-m-d H:i:s", time()-60*10)."'") >= 5){
+    # Rate limit to less than 5 tweets in 10 minutes.
+    die("Too many tweets at this time.");
+}
+if ($_REQUEST['follow']){
+    $follow = intval($_REQUEST['follow']);
+    query("insert ignore into follows(uid, follower) values ($user, '$follow')");
     }
-    if(getSingle("select count(*) from tweets where uid=$user and date >= '".Date("Y-m-d H:i:s", time()-60*10)."'") >= 5){
-      # Rate limit to less than 5 tweets in 10 minutes.
-      die("Too many tweets at this time.");
+    
+    if ($_REQUEST['unfollow']){
+    $unfollow = intval($_REQUEST['unfollow']);
+    query("delete from follows where uid=$user and follower='$unfollow'");
     }
 
 print <<<EOF
