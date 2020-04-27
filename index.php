@@ -91,3 +91,12 @@ print <<<EOF
   </td></tr></table>
 </form>
 EOF;
+
+print "<h4>Latest</h4>";
+$result = query("select * from tweets where uid not in (".implode(",", $banned).") order by date desc limit 100");
+	   
+$tweets = array();
+while($row = mysqli_fetch_assoc($result)){
+  $tweets[] = $row;
+}
+renderTweets($tweets);
