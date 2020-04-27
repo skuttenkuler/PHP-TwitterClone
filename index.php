@@ -36,7 +36,29 @@ function query($query) {
     return $uid;
   }
   
-
+  function renderTweets($tweets){
+    global $user;
+    print "<table  bordercolor=#ddd cellpadding=2 border=1>";
+    foreach($tweets as $row){
+      $uid = $row['uid'];
+      $post = htmlspecialchars($row['post']);
+      $date = $row['date'];
+      
+      if (!getSingle("select follower from follows where uid=$user and follower=$uid"))
+        $follow = <<<EOF
+      <a href=index.php?follow=$uid>Follow</a>
+  EOF;
+      else {
+        $follow = "<a href=index.php?unfollow=$uid>Unfollow</a>";
+      }
+      print <<<EOF
+        <tr><TD>$uid</td><td width=100%><div style='max-width:500px;overflow:hidden'>$post</div></td><td nowrap>$date</td><td>$follow</td></tr>
+  EOF;
+    }
+    print "</table>";
+  }
+  
+  $user = getUid();
 
 
 
