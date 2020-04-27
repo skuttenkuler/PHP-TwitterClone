@@ -24,6 +24,17 @@ function query($query) {
     $row = mysqli_fetch_row($result);
     return $row[0];
   }
+  //get user
+  function getUid(){
+    global $conn;
+    $ip = mysqli_real_escape_string($conn, $_SERVER['REMOTE_ADDR']);
+    $uid = getSingle("select uid from users where ip = '".$ip."'");
+    if (!$uid) {
+      query("insert into users(ip) values ('$ip')");
+    }
+    $uid = getSingle("select uid from users where ip = '".$ip."'");
+    return $uid;
+  }
   
 
 
